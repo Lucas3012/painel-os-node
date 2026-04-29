@@ -2,7 +2,7 @@
   "usuarios": [
     {
       "username": "admin",
-      "password": "123"
+      "password": "$2a$10$X7p7n9V9m/zI4U3S4z/yOeM.P0G5j6H0j9x8e7d6c5b4a3u2i1o"
     }
   ],
   "ordens": []
