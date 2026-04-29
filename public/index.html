@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel OS Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <aside>
+            <h2>OS Admin</h2>
+            <nav>
+                <ul>
+                    <li>Dashboard</li>
+                    <li class="active">Ordens de Serviço</li>
+                    <li>Clientes</li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <main>
+            <header>
+                <h1>Gerenciamento de Ordens</h1>
+                <button id="btnNovaOS" onclick="abrirModal()">+ Nova OS</button>
+            </header>
+
+            <section class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Equipamento</th>
+                            <th>Status</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCorpo">
+                        </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Nova Ordem de Serviço</h3>
+            <input type="text" id="cliente" placeholder="Nome do Cliente">
+            <input type="text" id="equipamento" placeholder="Equipamento">
+            <select id="status">
+                <option value="Aberto">Aberto</option>
+                <option value="Em Análise">Em Análise</option>
+                <option value="Concluído">Concluído</option>
+            </select>
+            <button onclick="salvarOS()">Salvar</button>
+            <button onclick="fecharModal()">Cancelar</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

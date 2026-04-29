@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - OS Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <h2>Acesso ao Painel</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Usuário</label>
+                <input type="text" id="user" required>
+            </div>
+            <div class="input-group">
+                <label>Senha</label>
+                <input type="password" id="pass" required>
+            </div>
+            <button type="submit">Entrar</button>
+        </form>
+        <p id="msg-erro" style="color: #e74c3c; margin-top: 10px; display: none;">Login inválido!</p>
+    </div>
+    <script>
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('user').value;
+            const pass = document.getElementById('pass').value;
+
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+
+            if (res.ok) {
+                const dados = await res.json();
+                localStorage.setItem('token', dados.token);
+                window.location.href = 'index.html'; // Vai para o painel
+            } else {
+                document.getElementById('msg-erro').style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
