@@ -8,46 +8,82 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="login-page">
+
     <div class="login-card">
         <h2>Bombinha OS</h2>
-        <p>Acesse o painel administrativo</p>
+        <p>Painel de Gerenciamento Local</p>
+        
         <form id="formLogin">
-            <input type="text" id="user" placeholder="Usuário" required>
-            <input type="password" id="pass" placeholder="Senha" required>
-            <button type="submit">Entrar</button>
+            <div class="input-group">
+                <input type="text" id="user" placeholder="Usuário" required autocomplete="username">
+            </div>
+            <div class="input-group">
+                <input type="password" id="pass" placeholder="Senha" required autocomplete="current-password">
+            </div>
+            <button type="submit" id="btnEntrar">Entrar no Sistema</button>
         </form>
     </div>
 
     <script>
         document.getElementById('formLogin').onsubmit = async (e) => {
             e.preventDefault();
+            
             const username = document.getElementById('user').value;
             const password = document.getElementById('pass').value;
+            const btn = document.getElementById('btnEntrar');
+
+            // Feedback visual de carregamento
+            btn.disabled = true;
+            btn.innerText = 'Autenticando...';
 
             try {
+                // IMPORTANTE: O uso de '/' antes de 'api' garante que ele use a raiz do servidor
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await res.json();
-
-                if (data.auth) {
+                if (res.ok) {
+                    const data = await res.json();
+                    // Salva o Token de segurança no navegador
                     localStorage.setItem('token', data.token);
-                    window.location.href = 'index.html';
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Acesso Permitido!',
+                        text: 'Redirecionando...',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = 'index.html';
+                    });
                 } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Acesso Negado',
-                        text: 'Usuário ou senha incorretos!',
+                        title: 'Falha no Login',
+                        text: 'Usuário ou senha incorretos.',
                         confirmButtonColor: '#3498db'
                     });
                 }
             } catch (err) {
-                Swal.fire('Erro', 'O servidor não está respondendo.', 'error');
+                console.error("Erro na requisição:", err);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Servidor Offline',
+                    text: 'Não foi possível conectar ao servidor. Verifique se o Node.js está rodando no Termux.',
+                    confirmButtonColor: '#e67e22'
+                });
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Entrar no Sistema';
             }
         };
+
+        // Verifica se já está logado e redireciona para o painel
+        if (localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
 </html>
