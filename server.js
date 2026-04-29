@@ -14,8 +14,9 @@ const DB_FILE = path.join(__dirname, 'db.json');
 app.use(cors());
 app.use(express.json());
 
-// CONFIGURAÇÃO CRÍTICA: Serve os arquivos da pasta public
-app.use(express.static(path.join(__dirname, 'public')));
+// CONFIGURAÇÃO PARA RODAR NA RAIZ:
+// Agora o servidor serve os arquivos da pasta onde ele próprio está
+app.use(express.static(__dirname));
 
 // Banco de dados JSON
 const readDB = () => {
@@ -26,9 +27,9 @@ const readDB = () => {
 };
 const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
-// Rota inicial: Se acessar "/" ele manda para o login
+// Rota principal: Entrega o login.html ao acessar o endereço
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.sendFile(path.join(__dirname, 'login.html'));
 });
 
 // --- ROTAS DE AUTENTICAÇÃO ---

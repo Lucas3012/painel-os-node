@@ -12,7 +12,7 @@
         <aside>
             <h2>Bombinha OS</h2>
             <nav>
-                <ul id="menu-abas">
+                <ul>
                     <li class="active" onclick="location.reload()">Ordens de Serviço</li>
                     <li onclick="logout()">Sair</li>
                 </ul>
@@ -36,7 +36,8 @@
                             <th>Data</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaCorpo"></tbody>
+                    <tbody id="tabelaCorpo">
+                        </tbody>
                 </table>
             </section>
         </main>
@@ -45,15 +46,17 @@
     <div id="modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Nova Ordem de Serviço</h3>
-            <input type="text" id="cliente" placeholder="Nome do Cliente">
-            <input type="text" id="equipamento" placeholder="Aparelho / Equipamento">
-            <select id="status">
-                <option value="Aberto">Aberto</option>
-                <option value="Em Análise">Em Análise</option>
-                <option value="Concluído">Concluído</option>
-            </select>
+            <div class="form-group">
+                <input type="text" id="cliente" placeholder="Nome do Cliente">
+                <input type="text" id="equipamento" placeholder="Equipamento/Aparelho">
+                <select id="status">
+                    <option value="Aberto">Aberto</option>
+                    <option value="Em Análise">Em Análise</option>
+                    <option value="Concluído">Concluído</option>
+                </select>
+            </div>
             <div class="modal-buttons">
-                <button onclick="salvarOS()" class="btn-confirm">Salvar</button>
+                <button onclick="salvarOS()" class="btn-confirm">Salvar Ordem</button>
                 <button onclick="fecharModal()" class="btn-cancel">Cancelar</button>
             </div>
         </div>

@@ -10,6 +10,7 @@
 <body class="login-page">
     <div class="login-card">
         <h2>Bombinha OS</h2>
+        <p>Acesse o painel administrativo</p>
         <form id="formLogin">
             <input type="text" id="user" placeholder="Usuário" required>
             <input type="password" id="pass" placeholder="Senha" required>
@@ -36,10 +37,15 @@
                     localStorage.setItem('token', data.token);
                     window.location.href = 'index.html';
                 } else {
-                    Swal.fire('Acesso Negado', 'Usuário ou senha inválidos.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Acesso Negado',
+                        text: 'Usuário ou senha incorretos!',
+                        confirmButtonColor: '#3498db'
+                    });
                 }
             } catch (err) {
-                Swal.fire('Erro', 'Servidor fora do ar.', 'error');
+                Swal.fire('Erro', 'O servidor não está respondendo.', 'error');
             }
         };
     </script>
