@@ -6,132 +6,112 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const SECRET_KEY = "bombinha_local_key_2026";
+const SECRET_KEY = "bombinha_local_2026";
 const PORT = 3000;
 
-// Caminhos dos arquivos e pastas
 const DB_FILE = path.join(__dirname, 'db.json');
 const TXT_FOLDER = path.join(__dirname, 'ordens_txt');
 
-// --- CONFIGURAÇÃO INICIAL ---
+// --- CONFIGURAÇÃO ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // Serve HTML, CSS e JS da raiz
+app.use(express.static(__dirname));
 
-// Garante que a pasta de TXTs exista
+// Garantir que a pasta de TXTs exista
 if (!fs.existsSync(TXT_FOLDER)) {
-    fs.mkdirSync(TXT_FOLDER);
-    console.log("📁 Pasta 'ordens_txt' criada.");
+    fs.mkdirSync(TXT_FOLDER, { recursive: true });
 }
 
-// Função para garantir que o banco exista e tenha o admin padrão
+// Inicializar banco de dados com admin:123
 const inicializarBanco = () => {
-    let criarNovo = false;
-
-    if (!fs.existsSync(DB_FILE)) {
-        criarNovo = true;
-    } else {
-        const conteudo = fs.readFileSync(DB_FILE, 'utf-8');
-        if (conteudo.trim().length < 5) criarNovo = true;
-    }
-
-    if (criarNovo) {
-        const salt = bcrypt.genSaltSync(10);
-        const adminInicial = {
+    if (!fs.existsSync(DB_FILE) || fs.readFileSync(DB_FILE, 'utf-8').trim().length < 5) {
+        const adminData = {
             usuarios: [{
                 username: "admin",
-                password: bcrypt.hashSync("123", salt)
+                password: bcrypt.hashSync("123", 10)
             }],
             ordens: []
         };
-        fs.writeFileSync(DB_FILE, JSON.stringify(adminInicial, null, 2));
-        console.log("✅ Banco de dados resetado: Usuário 'admin' com senha '123' pronto.");
+        fs.writeFileSync(DB_FILE, JSON.stringify(adminData, null, 2));
+        console.log("✅ BANCO CRIADO: Usuário 'admin' e senha '123' configurados.");
     }
 };
 
 const lerDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
 const salvarDB = (dados) => fs.writeFileSync(DB_FILE, JSON.stringify(dados, null, 2));
 
-// Executa a inicialização ao ligar o servidor
 inicializarBanco();
 
-// --- ROTAS DE AUTENTICAÇÃO ---
+// --- ROTAS ---
 
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const db = lerDB();
-        const user = db.usuarios.find(u => u.username === username);
+// Rota de Login (CORRIGIDA)
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    const db = lerDB();
+    
+    const user = db.usuarios.find(u => u.username === username);
 
-        if (user && await bcrypt.compare(password, user.password)) {
-            const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '24h' });
-            return res.json({ auth: true, token });
-        }
-        
-        res.status(401).json({ auth: false, message: "Credenciais inválidas" });
-    } catch (error) {
-        res.status(500).json({ message: "Erro interno no servidor" });
+    // Usando compareSync para evitar erros de promessa no Termux
+    if (user && bcrypt.compareSync(password, user.password)) {
+        const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '24h' });
+        console.log(`Logado com sucesso: ${username}`);
+        return res.json({ auth: true, token });
     }
+    
+    console.log(`Tentativa de login falhou para: ${username}`);
+    res.status(401).json({ auth: false, message: "Usuário ou senha incorretos" });
 });
 
-// --- ROTAS DE ORDENS DE SERVIÇO ---
-
+// Criar Ordem de Serviço
 app.post('/api/os', (req, res) => {
     const token = req.headers['x-access-token'];
     if (!token) return res.status(401).json({ message: "Não autorizado" });
 
-    try {
-        const db = lerDB();
-        const novaOS = {
-            id: Date.now(),
-            cliente: req.body.cliente,
-            equipamento: req.body.equipamento,
-            status: req.body.status || 'Aberto',
-            data: new Date().toLocaleString('pt-BR')
-        };
+    const db = lerDB();
+    const novaOS = {
+        id: Date.now(),
+        cliente: req.body.cliente,
+        equipamento: req.body.equipamento,
+        status: req.body.status || 'Aberto',
+        data: new Date().toLocaleString('pt-BR')
+    };
 
-        // 1. Salva no banco de dados JSON
-        db.ordens.push(novaOS);
-        salvarDB(db);
+    db.ordens.push(novaOS);
+    salvarDB(db);
 
-        // 2. Gera o arquivo TXT na pasta específica
-        const nomeArquivo = `OS_${novaOS.id}.txt`;
-        const conteudoArquivo = `
-==========================================
-        ORDEM DE SERVIÇO: #${novaOS.id}
-==========================================
+    // Gerar arquivo TXT
+    const conteudo = `
+=================================
+      ORDEM DE SERVIÇO: #${novaOS.id}
+=================================
 CLIENTE:     ${novaOS.cliente}
 EQUIPAMENTO: ${novaOS.equipamento}
 STATUS:      ${novaOS.status}
 DATA:        ${novaOS.data}
-==========================================
-        `;
-        
-        fs.writeFileSync(path.join(TXT_FOLDER, nomeArquivo), conteudoArquivo);
-
-        res.status(201).json(novaOS);
-    } catch (error) {
-        res.status(500).json({ message: "Erro ao salvar Ordem de Serviço" });
-    }
+=================================
+    `;
+    
+    fs.writeFileSync(path.join(TXT_FOLDER, `OS_${novaOS.id}.txt`), conteudo);
+    res.status(201).json(novaOS);
 });
 
+// Listar Ordens
 app.get('/api/os', (req, res) => {
     const db = lerDB();
     res.json(db.ordens);
 });
 
-// Rota para a página inicial
+// Rota inicial
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// --- INICIALIZAÇÃO ---
 app.listen(PORT, () => {
     console.log(`
-    -------------------------------------------
-    🚀 BOMBINHA OS - SISTEMA LOCAL ATIVO
-    🌐 Endereço: http://localhost:${PORT}
-    👤 Login: admin | Senha: 123
-    -------------------------------------------
+    ======================================
+    🚀 SERVIDOR ATIVO NA PORTA ${PORT}
+    🏠 ACESSE: http://localhost:${PORT}
+    🔑 LOGIN: admin | SENHA: 123
+    ======================================
     `);
 });
