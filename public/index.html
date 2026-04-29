@@ -12,8 +12,8 @@
         <aside>
             <h2>Bombinha OS</h2>
             <nav>
-                <ul>
-                    <li class="active">Ordens de Serviço</li>
+                <ul id="menu-abas">
+                    <li class="active" onclick="location.reload()">Ordens de Serviço</li>
                     <li onclick="logout()">Sair</li>
                 </ul>
             </nav>
@@ -36,18 +36,17 @@
                             <th>Data</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaCorpo">
-                        </tbody>
+                    <tbody id="tabelaCorpo"></tbody>
                 </table>
             </section>
         </main>
     </div>
 
-    <div id="modal" class="modal">
+    <div id="modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Nova Ordem de Serviço</h3>
             <input type="text" id="cliente" placeholder="Nome do Cliente">
-            <input type="text" id="equipamento" placeholder="Equipamento">
+            <input type="text" id="equipamento" placeholder="Aparelho / Equipamento">
             <select id="status">
                 <option value="Aberto">Aberto</option>
                 <option value="Em Análise">Em Análise</option>

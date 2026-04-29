@@ -1,16 +1,22 @@
 const API_URL = '/api/os';
 
-document.addEventListener('DOMContentLoaded', () => {
-    verificarAcesso();
-});
-
-async function verificarAcesso() {
+// Verifica login e carrega dados
+window.onload = () => {
     const token = localStorage.getItem('token');
     if (!token) {
         window.location.href = 'login.html';
-        return;
+    } else {
+        carregarOS();
     }
-    carregarOS();
+};
+
+function abrirModal() {
+    console.log("Abrindo modal..."); // Debug no console (F12)
+    document.getElementById('modal').style.display = 'flex';
+}
+
+function fecharModal() {
+    document.getElementById('modal').style.display = 'none';
 }
 
 async function carregarOS() {
@@ -19,11 +25,7 @@ async function carregarOS() {
         const res = await fetch(API_URL, {
             headers: { 'x-access-token': token }
         });
-
-        if (res.status === 401) {
-            logoutForçado();
-            return;
-        }
+        if (res.status === 401) return logout();
 
         const dados = await res.json();
         const corpo = document.getElementById('tabelaCorpo');
@@ -32,12 +34,12 @@ async function carregarOS() {
                 <td>#${String(os.id).slice(-4)}</td>
                 <td>${os.cliente}</td>
                 <td>${os.equipamento}</td>
-                <td><span class="badge ${os.status.toLowerCase().replace(' ', '-')}">${os.status}</span></td>
+                <td><span class="badge ${os.status.toLowerCase()}">${os.status}</span></td>
                 <td>${os.data}</td>
             </tr>
         `).join('');
     } catch (err) {
-        console.error("Erro ao carregar:", err);
+        console.error("Erro:", err);
     }
 }
 
@@ -48,56 +50,34 @@ async function salvarOS() {
     const status = document.getElementById('status').value;
 
     if (!cliente || !equipamento) {
-        Swal.fire('Erro!', 'Por favor, preencha todos os campos.', 'error');
-        return;
+        return Swal.fire('Atenção', 'Preencha os campos!', 'warning');
     }
 
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-access-token': token 
-            },
-            body: JSON.stringify({ cliente, equipamento, status, data: new Date().toLocaleDateString('pt-BR') })
-        });
+    const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-access-token': token },
+        body: JSON.stringify({ cliente, equipamento, status, data: new Date().toLocaleDateString('pt-BR') })
+    });
 
-        if (res.ok) {
-            fecharModal();
-            document.getElementById('cliente').value = '';
-            document.getElementById('equipamento').value = '';
-            carregarOS();
-            Swal.fire({
-                icon: 'success',
-                title: 'OS Criada!',
-                showConfirmButton: false,
-                timer: 1500
-            });
-        }
-    } catch (err) {
-        Swal.fire('Erro!', 'Não foi possível salvar.', 'error');
+    if (res.ok) {
+        fecharModal();
+        Swal.fire('Sucesso!', 'OS cadastrada.', 'success');
+        carregarOS();
+        document.getElementById('cliente').value = '';
+        document.getElementById('equipamento').value = '';
     }
 }
 
-function abrirModal() { document.getElementById('modal').style.display = 'block'; }
-function fecharModal() { document.getElementById('modal').style.display = 'none'; }
-
 function logout() {
     Swal.fire({
-        title: 'Deseja sair?',
+        title: 'Sair?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Sim',
-        cancelButtonText: 'Não'
-    }).then((result) => {
-        if (result.isConfirmed) {
+        confirmButtonText: 'Sim'
+    }).then(r => {
+        if (r.isConfirmed) {
             localStorage.removeItem('token');
             window.location.href = 'login.html';
         }
     });
-}
-
-function logoutForçado() {
-    localStorage.removeItem('token');
-    window.location.href = 'login.html';
 }
