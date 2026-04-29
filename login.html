@@ -11,79 +11,87 @@
 
     <div class="login-card">
         <h2>Bombinha OS</h2>
-        <p>Painel de Gerenciamento Local</p>
+        <p>Acesse o Sistema de Gestão</p>
         
         <form id="formLogin">
             <div class="input-group">
-                <input type="text" id="user" placeholder="Usuário" required autocomplete="username">
+                <input type="text" id="user" placeholder="Usuário" required autocomplete="off">
             </div>
             <div class="input-group">
-                <input type="password" id="pass" placeholder="Senha" required autocomplete="current-password">
+                <input type="password" id="pass" placeholder="Senha" required autocomplete="off">
             </div>
-            <button type="submit" id="btnEntrar">Entrar no Sistema</button>
+            <button type="submit" id="btnEntrar">Entrar</button>
         </form>
     </div>
 
     <script>
+        // Limpa o token antigo toda vez que a página de login carrega
+        localStorage.removeItem('token');
+
         document.getElementById('formLogin').onsubmit = async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('user').value;
-            const password = document.getElementById('pass').value;
+            // Pega os valores dos inputs
+            const userValue = document.getElementById('user').value.trim();
+            const passValue = document.getElementById('pass').value.trim();
             const btn = document.getElementById('btnEntrar');
 
-            // Feedback visual de carregamento
+            // Feedback visual
             btn.disabled = true;
-            btn.innerText = 'Autenticando...';
+            btn.innerText = 'Verificando...';
 
             try {
-                // IMPORTANTE: O uso de '/' antes de 'api' garante que ele use a raiz do servidor
+                // O segredo está aqui: as chaves DEVEM ser username e password
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    headers: { 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        username: userValue, 
+                        password: passValue 
+                    })
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    // Salva o Token de segurança no navegador
+                const data = await res.json();
+
+                if (res.ok && data.auth) {
+                    // Salva o token para as próximas requisições
                     localStorage.setItem('token', data.token);
                     
                     Swal.fire({
                         icon: 'success',
-                        title: 'Acesso Permitido!',
-                        text: 'Redirecionando...',
+                        title: 'Sucesso!',
+                        text: 'Acesso autorizado.',
                         timer: 1500,
                         showConfirmButton: false
                     }).then(() => {
                         window.location.href = 'index.html';
                     });
                 } else {
+                    // Erro de credenciais
                     Swal.fire({
                         icon: 'error',
-                        title: 'Falha no Login',
-                        text: 'Usuário ou senha incorretos.',
+                        title: 'Erro no Login',
+                        text: data.message || 'Usuário ou senha incorretos!',
                         confirmButtonColor: '#3498db'
                     });
                 }
             } catch (err) {
-                console.error("Erro na requisição:", err);
+                // Erro de conexão (Servidor desligado)
+                console.error(err);
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Servidor Offline',
-                    text: 'Não foi possível conectar ao servidor. Verifique se o Node.js está rodando no Termux.',
-                    confirmButtonColor: '#e67e22'
+                    title: 'Falha na Conexão',
+                    text: 'O servidor não respondeu. Verifique o Termux.',
+                    confirmButtonColor: '#f39c12'
                 });
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'Entrar no Sistema';
+                btn.innerText = 'Entrar';
             }
         };
-
-        // Verifica se já está logado e redireciona para o painel
-        if (localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        }
     </script>
+
 </body>
 </html>
