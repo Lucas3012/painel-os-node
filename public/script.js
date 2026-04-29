@@ -1,13 +1,9 @@
 const API_URL = '/api/os';
 
-// Executa ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
-        verificarAcesso();
-    }
+    verificarAcesso();
 });
 
-// Verifica se o token existe e é válido
 async function verificarAcesso() {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -17,7 +13,6 @@ async function verificarAcesso() {
     carregarOS();
 }
 
-// Busca as OS do servidor
 async function carregarOS() {
     const token = localStorage.getItem('token');
     try {
@@ -25,48 +20,35 @@ async function carregarOS() {
             headers: { 'x-access-token': token }
         });
 
-        if (res.status === 401 || res.status === 500) {
-            logout();
+        if (res.status === 401) {
+            logoutForçado();
             return;
         }
 
         const dados = await res.json();
-        renderizarTabela(dados);
-    } catch (erro) {
-        console.error("Erro ao buscar dados:", erro);
+        const corpo = document.getElementById('tabelaCorpo');
+        corpo.innerHTML = dados.map(os => `
+            <tr>
+                <td>#${String(os.id).slice(-4)}</td>
+                <td>${os.cliente}</td>
+                <td>${os.equipamento}</td>
+                <td><span class="badge ${os.status.toLowerCase().replace(' ', '-')}">${os.status}</span></td>
+                <td>${os.data}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error("Erro ao carregar:", err);
     }
 }
 
-// Renderiza os dados no HTML
-function renderizarTabela(dados) {
-    const corpo = document.getElementById('tabelaCorpo');
-    if (!corpo) return;
-
-    corpo.innerHTML = dados.map(os => `
-        <tr>
-            <td>#${String(os.id).slice(-4)}</td>
-            <td>${os.cliente}</td>
-            <td>${os.equipamento}</td>
-            <td><span class="status-badge ${os.status.toLowerCase().replace(' ', '-')}">${os.status}</span></td>
-            <td>${os.data}</td>
-        </tr>
-    `).join('');
-}
-
-// Salva uma nova OS
 async function salvarOS() {
     const token = localStorage.getItem('token');
-    const btn = document.querySelector('.modal-content button');
-    
-    const dados = {
-        cliente: document.getElementById('cliente').value,
-        equipamento: document.getElementById('equipamento').value,
-        status: document.getElementById('status').value,
-        data: new Date().toLocaleDateString('pt-BR')
-    };
+    const cliente = document.getElementById('cliente').value;
+    const equipamento = document.getElementById('equipamento').value;
+    const status = document.getElementById('status').value;
 
-    if (!dados.cliente || !dados.equipamento) {
-        alert("Preencha todos os campos!");
+    if (!cliente || !equipamento) {
+        Swal.fire('Erro!', 'Por favor, preencha todos os campos.', 'error');
         return;
     }
 
@@ -77,30 +59,45 @@ async function salvarOS() {
                 'Content-Type': 'application/json',
                 'x-access-token': token 
             },
-            body: JSON.stringify(dados)
+            body: JSON.stringify({ cliente, equipamento, status, data: new Date().toLocaleDateString('pt-BR') })
         });
 
         if (res.ok) {
             fecharModal();
-            limparFormulario();
+            document.getElementById('cliente').value = '';
+            document.getElementById('equipamento').value = '';
             carregarOS();
-        } else {
-            alert("Erro ao salvar OS.");
+            Swal.fire({
+                icon: 'success',
+                title: 'OS Criada!',
+                showConfirmButton: false,
+                timer: 1500
+            });
         }
-    } catch (erro) {
-        console.error("Erro na requisição:", erro);
+    } catch (err) {
+        Swal.fire('Erro!', 'Não foi possível salvar.', 'error');
     }
 }
 
-// Funções de Interface
 function abrirModal() { document.getElementById('modal').style.display = 'block'; }
 function fecharModal() { document.getElementById('modal').style.display = 'none'; }
-function limparFormulario() {
-    document.getElementById('cliente').value = '';
-    document.getElementById('equipamento').value = '';
-}
 
 function logout() {
+    Swal.fire({
+        title: 'Deseja sair?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sim',
+        cancelButtonText: 'Não'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+    });
+}
+
+function logoutForçado() {
     localStorage.removeItem('token');
     window.location.href = 'login.html';
 }

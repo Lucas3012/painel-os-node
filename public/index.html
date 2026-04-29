@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel OS Pro</title>
+    <title>Bombinha OS - Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="container">
         <aside>
-            <h2>OS Admin</h2>
+            <h2>Bombinha OS</h2>
             <nav>
                 <ul>
-                    <li>Dashboard</li>
                     <li class="active">Ordens de Serviço</li>
-                    <li>Clientes</li>
+                    <li onclick="logout()">Sair</li>
                 </ul>
             </nav>
         </aside>
@@ -53,10 +53,13 @@
                 <option value="Em Análise">Em Análise</option>
                 <option value="Concluído">Concluído</option>
             </select>
-            <button onclick="salvarOS()">Salvar</button>
-            <button onclick="fecharModal()">Cancelar</button>
+            <div class="modal-buttons">
+                <button onclick="salvarOS()" class="btn-confirm">Salvar</button>
+                <button onclick="fecharModal()" class="btn-cancel">Cancelar</button>
+            </div>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
