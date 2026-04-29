@@ -6,116 +6,92 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const SECRET_KEY = "bombinha_secret_key_123"; // Você pode alterar essa chave
-const PORT = process.env.PORT || 3000;
+const SECRET_KEY = "bombinha_local_key";
+const PORT = 3000;
 const DB_FILE = path.join(__dirname, 'db.json');
+const TXT_FOLDER = path.join(__dirname, 'ordens_txt'); // Nome da nova pasta
 
-// --- MIDDLEWARES ---
 app.use(cors());
 app.use(express.json());
-
-// Serve arquivos estáticos diretamente da raiz
 app.use(express.static(__dirname));
 
-// --- FUNÇÕES DO BANCO DE DATA (JSON) ---
-const readDB = () => {
+// CRIA A PASTA SE ELA NÃO EXISTIR
+if (!fs.existsSync(TXT_FOLDER)) {
+    fs.mkdirSync(TXT_FOLDER);
+}
+
+// Inicializa o banco com admin/123
+const inicializarBanco = () => {
     if (!fs.existsSync(DB_FILE)) {
-        // Se o arquivo não existir, cria um modelo inicial vazio
-        fs.writeFileSync(DB_FILE, JSON.stringify({ usuarios: [], ordens: [] }, null, 2));
+        const adminInicial = {
+            usuarios: [{
+                username: "admin",
+                password: bcrypt.hashSync("123", 10)
+            }],
+            ordens: []
+        };
+        fs.writeFileSync(DB_FILE, JSON.stringify(adminInicial, null, 2));
     }
-    const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content || '{"usuarios": [], "ordens": []}');
 };
 
-const writeDB = (data) => {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
+const lerDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+const salvarDB = (dados) => fs.writeFileSync(DB_FILE, JSON.stringify(dados, null, 2));
 
-// --- ROTAS DE AUTENTICAÇÃO ---
-
-// Rota de Registro (Para criar seu usuário inicial ou novos usuários)
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const db = readDB();
-        const { username, password } = req.body;
-
-        if (db.usuarios.find(u => u.username === username)) {
-            return res.status(400).json({ message: "Usuário já existe!" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        db.usuarios.push({ username, password: hashedPassword });
-        writeDB(db);
-
-        res.status(201).json({ message: "Usuário criado com sucesso!" });
-    } catch (err) {
-        res.status(500).json({ message: "Erro ao registrar usuário." });
-    }
-});
+inicializarBanco();
 
 // Rota de Login
 app.post('/api/auth/login', async (req, res) => {
-    const db = readDB();
     const { username, password } = req.body;
-    
+    const db = lerDB();
     const user = db.usuarios.find(u => u.username === username);
 
     if (user && await bcrypt.compare(password, user.password)) {
         const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '24h' });
         return res.json({ auth: true, token });
     }
-    
-    res.status(401).json({ auth: false, message: "Usuário ou senha inválidos!" });
+    res.status(401).json({ auth: false });
 });
 
-// Middleware de Proteção de Rotas (Verifica se está logado)
-function verificarJWT(req, res, next) {
+// Salvar OS e Criar Arquivo Local dentro da pasta
+app.post('/api/os', (req, res) => {
     const token = req.headers['x-access-token'];
-    if (!token) return res.status(401).json({ message: "Token não fornecido." });
+    if (!token) return res.status(401).send("Acesso negado");
 
-    jwt.verify(token, SECRET_KEY, (err, decoded) => {
-        if (err) return res.status(500).json({ message: "Falha na autenticação do token." });
-        req.userId = decoded.username;
-        next();
-    });
-}
-
-// --- ROTAS DAS ORDENS DE SERVIÇO (CRUD) ---
-
-// Listar todas as OS
-app.get('/api/os', verificarJWT, (req, res) => {
-    const db = readDB();
-    res.json(db.ordens);
-});
-
-// Criar nova OS
-app.post('/api/os', verificarJWT, (req, res) => {
-    const db = readDB();
+    const db = lerDB();
     const novaOS = {
         id: Date.now(),
         cliente: req.body.cliente,
         equipamento: req.body.equipamento,
-        status: req.body.status || 'Aberto',
-        data: req.body.data || new Date().toLocaleDateString('pt-BR')
+        status: req.body.status,
+        data: new Date().toLocaleString('pt-BR')
     };
 
     db.ordens.push(novaOS);
-    writeDB(db);
+    salvarDB(db);
+
+    // SALVANDO O TXT DENTRO DA PASTA 'ordens_txt'
+    const nomeArquivo = `OS_${novaOS.id}.txt`;
+    const conteudoArquivo = `
+        ORDEM DE SERVIÇO: #${novaOS.id}
+        ---------------------------
+        CLIENTE: ${novaOS.cliente}
+        EQUIPAMENTO: ${novaOS.equipamento}
+        STATUS: ${novaOS.status}
+        DATA: ${novaOS.data}
+        ---------------------------
+    `;
+    
+    // path.join coloca o arquivo dentro da pasta definida em TXT_FOLDER
+    fs.writeFileSync(path.join(TXT_FOLDER, nomeArquivo), conteudoArquivo);
+
     res.status(201).json(novaOS);
 });
 
-// Rota Principal (Entrega o HTML de Login)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
+app.get('/api/os', (req, res) => {
+    const db = lerDB();
+    res.json(db.ordens);
 });
 
-// Inicia o Servidor
-app.listen(PORT, () => {
-    console.log(`
-    ==========================================
-    🚀 BOMBINHA OS ONLINE
-    📡 Porta: ${PORT}
-    🔗 URL: http://localhost:${PORT}
-    ==========================================
-    `);
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+
+app.listen(PORT, () => console.log(`🚀 Bombinha OS local em: http://localhost:${PORT}`));
